@@ -13,6 +13,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using SprocToPOCO.Logic;
 using SprocToPOCO.Properties;
+using System.Windows.Controls.Primitives;
 
 namespace SprocToPOCO
 {
@@ -24,10 +25,18 @@ namespace SprocToPOCO
         public MainWindow()
         {
             InitializeComponent();
-            textBox1.Text = Settings.Default.ConnectionString;
-            textBox2.Text = Settings.Default.Query;   
+            // Load settings
+            textBoxConnectionString.Text = Settings.Default.ConnectionString;
+            textBoxStoreProc.Text = Settings.Default.Query;   
         }
 
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            // Store settings
+            Properties.Settings.Default["ConnectionString"] = textBoxConnectionString.Text;
+            Properties.Settings.Default["Query"] = textBoxStoreProc.Text;
+            Properties.Settings.Default.Save();
+        }
 
         private string FirstWord(string str)
         {
@@ -41,80 +50,54 @@ namespace SprocToPOCO
             }
         }
 
-        private void button1_Click(object sender, RoutedEventArgs e)
+        private void HandleException(TextBoxBase control, Exception ex)
         {
-            RunStoredProc rsp = new RunStoredProc(textBox1.Text);
-            richTextBox1.Document.Blocks.Clear();
-            richTextBox2.Document.Blocks.Clear();
+            control.AppendText(ex.Message + Environment.NewLine + Environment.NewLine);
+            control.AppendText(" throwed by: " + ex.GetType().ToString() + Environment.NewLine);
 
-            try
-            {
-                var cols = rsp.GetColumnsFromResultSet(textBox2.Text);
+            control.AppendText(Environment.NewLine);
+            control.AppendText(Environment.NewLine);
+            control.AppendText("StackTrace: " + Environment.NewLine);
+            control.AppendText(ex.StackTrace);
+        }
 
-                string s = CSharWriter.ToPOCO(FirstWord(textBox2.Text), cols);
+        private void buttonRun_Click(object sender, RoutedEventArgs e)
+        {
+            SqlMetaProvider rsp = new SqlMetaProvider(textBoxConnectionString.Text);
+            richTextBoxPOCO.Document.Blocks.Clear();
+            richTextBoxStoreProc.Document.Blocks.Clear();
 
-                richTextBox1.AppendText(s);
-            }
-            catch (Exception ex)
-            {
-                richTextBox1.AppendText(ex.Message + Environment.NewLine + Environment.NewLine);
-                richTextBox1.AppendText(" throwed by: " + ex.GetType().ToString() + Environment.NewLine);
-
-                richTextBox1.AppendText(Environment.NewLine);
-                richTextBox1.AppendText(Environment.NewLine);
-                richTextBox1.AppendText("StackTrace: " + Environment.NewLine);
-                richTextBox1.AppendText(ex.StackTrace);
-            }
 
 
             try
             {
+                var cols = rsp.GetResultsetColumnsFromStoredProc(textBoxStoreProc.Text);
 
-                var pars = rsp.GetParamsFromStoredProc(FirstWord(textBox2.Text));
+                string s = CSharWriter.ToPOCO(FirstWord(textBoxStoreProc.Text), cols);
 
-                string s = CSharWriter.ToDataProvider(FirstWord(textBox2.Text), pars);
-
-                richTextBox2.AppendText(s);
+                richTextBoxPOCO.AppendText(s);
             }
             catch (Exception ex)
             {
-                richTextBox2.AppendText(ex.Message + Environment.NewLine + Environment.NewLine);
-                richTextBox2.AppendText(" throwed by: " + ex.GetType().ToString() + Environment.NewLine);
-
-                richTextBox2.AppendText(Environment.NewLine);
-                richTextBox2.AppendText(Environment.NewLine);
-                richTextBox2.AppendText("StackTrace: " + Environment.NewLine);
-                richTextBox2.AppendText(ex.StackTrace);
+                HandleException(richTextBoxPOCO, ex);
             }
+ 
 
             try
             {
-                var pars = rsp.GetParamsFromStoredProc(FirstWord(textBox2.Text));
+                var pars = rsp.GetParamsFromStoredProc(FirstWord(textBoxStoreProc.Text));
 
-                string s = SQLWriter.ToInsertSproc(FirstWord(textBox2.Text), pars);
+                string s = CSharWriter.ToDataProvider(FirstWord(textBoxStoreProc.Text), pars);
 
-                richTextBox3.AppendText(s);
+                richTextBoxStoreProc.AppendText(s);
             }
             catch (Exception ex)
             {
-                richTextBox3.AppendText(ex.Message + Environment.NewLine + Environment.NewLine);
-                richTextBox3.AppendText(" throwed by: " + ex.GetType().ToString() + Environment.NewLine);
-
-                richTextBox3.AppendText(Environment.NewLine);
-                richTextBox3.AppendText(Environment.NewLine);
-                richTextBox3.AppendText("StackTrace: " + Environment.NewLine);
-                richTextBox3.AppendText(ex.StackTrace);
+                HandleException(richTextBoxStoreProc, ex);
             }
-            
-
 
         }
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            Properties.Settings.Default["ConnectionString"] = textBox1.Text;
-            Properties.Settings.Default["Query"] = textBox2.Text;
-            Properties.Settings.Default.Save();
-        }
+
     }
 }

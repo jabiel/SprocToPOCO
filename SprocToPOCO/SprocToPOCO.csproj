@@ -64,9 +64,8 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Logic\CSharWriter.cs" />
-    <Compile Include="Logic\Models\TableColumn.cs" />
-    <Compile Include="Logic\RunStoredProc.cs" />
     <Compile Include="Logic\Models\SprocColumn.cs" />
+    <Compile Include="Logic\SqlMetaProvider.cs" />
     <Compile Include="Logic\Models\SprocParam.cs" />
     <Compile Include="Logic\SQLWriter.cs" />
     <Compile Include="MainWindow.xaml.cs">

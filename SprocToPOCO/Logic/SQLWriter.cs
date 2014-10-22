@@ -9,7 +9,12 @@ namespace SprocToPOCO.Logic
     {
 
         const string CREATE_PROC = "CREATE PROC [dbo].[{0}]";
-
+        /// <summary>
+        /// Abandoned: miało budować szkielet procedur
+        /// </summary>
+        /// <param name="tableName"></param>
+        /// <param name="pars"></param>
+        /// <returns></returns>
         public static string ToInsertSproc(string tableName, List<SprocParam> pars)
         {
             StringBuilder sb = new StringBuilder();

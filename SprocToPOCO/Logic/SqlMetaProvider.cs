@@ -7,21 +7,25 @@ using System.Data;
 
 namespace SprocToPOCO.Logic
 {
-    public class RunStoredProc
+    public class SqlMetaProvider
     {
         string connStr;
-        public RunStoredProc(string connectionString)
+        public SqlMetaProvider(string connectionString)
         {
             connStr = connectionString;
         }
 
-        public List<SprocColumn> GetColumnsFromResultSet(string sprocNameAndParams)
+        /// <summary>
+        /// Wykonuje procke, query i zwraca liste kolumn z result setu
+        /// </summary>
+        /// <param name="sprocNameAndParams"></param>
+        /// <returns></returns>
+        public List<SprocColumn> GetResultsetColumnsFromStoredProc(string sprocNameAndParams)
         {
-
             using (var conn = new SqlConnection(connStr))
             {
                 using (var cmd = conn.CreateCommand())
-                {
+                {                    
                     conn.Open();
                     List<SprocColumn> columns = new List<SprocColumn>();
 
@@ -30,36 +34,31 @@ namespace SprocToPOCO.Logic
                     SqlDataReader reader = cmd.ExecuteReader();
 
                     reader.Read();
-                    foreach (DataRow c in reader.GetSchemaTable().Rows)
-                    {                       
-                        columns.Add(new SprocColumn()
-                        {
-                            Name = c["ColumnName"].ToString(),
-                            Type = c["DataType"].ToString(),
-                            Length = (int)c["ColumnSize"],
-                            IsNullable = (bool)c["AllowDBNull"],
-                        });
-                    }
 
-                    /*
-                    for(int i=0;i<reader.FieldCount;i++)
+                    if (reader.GetSchemaTable() != null)
                     {
-                       columns.Add(new SprocCol(){
-                         Name = reader.GetName(i),
-                          Type = reader.GetFieldType(i).ToString(),
-                           Length= 0
-               
-                       });
+                        foreach (DataRow c in reader.GetSchemaTable().Rows)
+                        {
+                            columns.Add(new SprocColumn()
+                            {
+                                Name = c["ColumnName"].ToString(),
+                                Type = c["DataType"].ToString(),
+                                Length = (int)c["ColumnSize"],
+                                IsNullable = (bool)c["AllowDBNull"],
+                            });
+                        }
                     }
-                    */
-
                     return columns;   
                 }
             }
         }
 
 
-        
+        /// <summary>
+        /// Pobiera parametry procedury
+        /// </summary>
+        /// <param name="sprocName"></param>
+        /// <returns></returns>
         public List<SprocParam> GetParamsFromStoredProc(string sprocName)
         {
             const string queryProcParamsSQL = "SELECT PARAMETER_MODE, PARAMETER_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH FROM INFORMATION_SCHEMA.PARAMETERS WHERE SPECIFIC_NAME = '{0}' ORDER BY ORDINAL_POSITION";
