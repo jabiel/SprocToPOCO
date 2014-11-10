@@ -30,7 +30,7 @@ namespace SprocToPOCO.Logic
         {
             StringBuilder sb = new StringBuilder();
 
-            sb.AppendLine("public class "+className+" {");
+            sb.AppendLine("public class "+className+"Model {");
             String row = "";
             String t = "";
             String comment = "";
@@ -70,24 +70,82 @@ namespace SprocToPOCO.Logic
         }
 
 
-        public static string ToDataProvider(string sprocName, List<SprocParam> pars)
+        private static string SqlTypeToCSarp(string typ)
+        {
+            string s = typ;
+            s = s.Replace("varchar", "string");
+            s = s.Replace("bit", "bool");
+
+            
+            return s;
+        }
+
+        private static string FixParameterName(string name, bool isEntity)
+        {
+            name = name.Replace("@", "");
+            if (isEntity)
+            {
+                name = "entity." + name;
+            }
+            else
+            {
+                name = Char.ToLowerInvariant(name[0]) + name.Substring(1);
+            }
+            return name;
+        }
+
+        public static string ToDataProvider(string sprocName, List<SprocParam> pars, bool isSprocReturnsRowset, bool paramsAsEntity = false)
         {
             StringBuilder sb = new StringBuilder();
 
-            sb.AppendLine(string.Format("dataprovider.StoredProc(\"{0}\")", sprocName));
+            string methodParam = "T entity  ";
+            if (!paramsAsEntity)
+            {
+                methodParam = "";
+                foreach (var p in pars)
+                {
+                    methodParam += SqlTypeToCSarp(p.Datatype) + " " + FixParameterName(p.Name, false) + ", ";
+                }
+            }
+            methodParam = methodParam.Substring(0, methodParam.Length - 2); // ostatni przecienk
+
+            if (isSprocReturnsRowset)
+            {
+                sb.AppendLine(string.Format("public IEnumerable<{0}Model> {0}({1})", sprocName, methodParam));
+                
+            } else 
+            {
+                sb.AppendLine(string.Format("public void {0}({1})", sprocName, methodParam));
+            }
+
+            sb.AppendLine("{");
+
+            sb.AppendLine(string.Format("{1}provider.StoredProc(\"{0}\")", sprocName, isSprocReturnsRowset ? "return " : ""));
 
             foreach (var p in pars)
             {
                 if (p.Datatype.Contains("char"))
                 {
-                    sb.AppendLine(string.Format(".Param{0}(\"{1}\", entity.{2}, {3})", p.OutParam ? "Out" : "", p.Name, p.Name.Replace("@", ""), p.MaxLen));
+                    sb.AppendLine(string.Format(".Param{0}(\"{1}\", {2}, {3})", p.OutParam ? "Out" : "", p.Name, FixParameterName(p.Name, paramsAsEntity), p.MaxLen));
                 }
                 else
                 {
-                    sb.AppendLine(string.Format(".Param{0}(\"{1}\", entity.{2})", p.OutParam ? "Out" : "", p.Name, p.Name.Replace("@", "")));
+                    sb.AppendLine(string.Format(".Param{0}(\"{1}\", {2})", p.OutParam ? "Out" : "", p.Name, FixParameterName(p.Name, paramsAsEntity)));
                 }
                 
             }
+
+            if (isSprocReturnsRowset)
+            {
+                sb.AppendLine(string.Format(".ExecuteList<{0}>();", sprocName+"Model"));
+
+            }
+            else
+            {
+                sb.AppendLine(string.Format(".ExecuteNonQuery();"));
+            }
+
+            sb.AppendLine("}");
 
             return sb.ToString();
         }

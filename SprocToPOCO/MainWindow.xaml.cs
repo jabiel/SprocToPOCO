@@ -34,7 +34,7 @@ namespace SprocToPOCO
         {
             // Store settings
             Properties.Settings.Default["ConnectionString"] = textBoxConnectionString.Text;
-            Properties.Settings.Default["Query"] = textBoxStoreProc.Text;
+            Properties.Settings.Default["Query"]            = textBoxStoreProc.Text;
             Properties.Settings.Default.Save();
         }
 
@@ -43,6 +43,7 @@ namespace SprocToPOCO
             if (str.IndexOf(" ") < 0)
             {
                 return str;
+
             }
             else
             {
@@ -67,11 +68,13 @@ namespace SprocToPOCO
             richTextBoxPOCO.Document.Blocks.Clear();
             richTextBoxStoreProc.Document.Blocks.Clear();
 
-
+            bool isSprocReturnsRowset = true;
 
             try
             {
                 var cols = rsp.GetResultsetColumnsFromStoredProc(textBoxStoreProc.Text);
+
+                isSprocReturnsRowset = cols.Count > 0;
 
                 string s = CSharWriter.ToPOCO(FirstWord(textBoxStoreProc.Text), cols);
 
@@ -79,15 +82,30 @@ namespace SprocToPOCO
             }
             catch (Exception ex)
             {
+
+                if (ex.Message.Contains("expects parameter"))
+                {
+                    try
+                    {
+                        var pars = rsp.GetParamsFromStoredProc(FirstWord(textBoxStoreProc.Text));
+                        richTextBoxPOCO.AppendText("TRY:" + Environment.NewLine + Environment.NewLine);
+                        richTextBoxPOCO.AppendText(SQLWriter.ToFixedExec(FirstWord(textBoxStoreProc.Text), pars) + Environment.NewLine + Environment.NewLine);
+                    }
+                    catch (Exception)
+                    {
+                        //throw;
+                    }
+                }
                 HandleException(richTextBoxPOCO, ex);
+
             }
- 
+
 
             try
             {
                 var pars = rsp.GetParamsFromStoredProc(FirstWord(textBoxStoreProc.Text));
 
-                string s = CSharWriter.ToDataProvider(FirstWord(textBoxStoreProc.Text), pars);
+                string s = CSharWriter.ToDataProvider(FirstWord(textBoxStoreProc.Text), pars, isSprocReturnsRowset, combineToEntity.IsChecked.Value);
 
                 richTextBoxStoreProc.AppendText(s);
             }
@@ -95,6 +113,10 @@ namespace SprocToPOCO
             {
                 HandleException(richTextBoxStoreProc, ex);
             }
+
+            
+ 
+
 
         }
 

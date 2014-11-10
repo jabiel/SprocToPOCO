@@ -8,6 +8,32 @@ namespace SprocToPOCO.Logic
     public class SQLWriter
     {
 
+        public static string ToFixedExec(string sprocName, List<SprocParam> pars)
+        {
+            string s = sprocName + " ";
+            foreach (var p in pars)
+            {
+                
+                if (p.Datatype.Contains("char"))
+                {
+                    s += p.Name + "='" + "'" + ",";
+
+                } 
+                else if (p.Datatype.ToLower().Contains("date"))
+                {
+                    s += p.Name + "='" +"2010-01-01"+ "'" + ",";
+
+                }
+                else
+                {
+                    s += p.Name + "=" + "0" + "" + ",";                    
+                }
+
+            }
+            return s.Substring(0, s.Length-1);
+        }
+
+
         const string CREATE_PROC = "CREATE PROC [dbo].[{0}]";
         /// <summary>
         /// Abandoned: miało budować szkielet procedur
